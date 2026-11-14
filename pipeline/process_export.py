@@ -32,6 +32,7 @@ except Exception:  # tzdata missing (common on Windows) -> fall back to UTC
 PLAY_THRESHOLD_MS = 30_000
 TOP_N_ALL_TIME = 100
 TOP_N_PER_YEAR = 25
+TOP_N_PER_MONTH = 10
 TRACK_INDEX_SIZE = 1000  # tracks we will later look up BPM for
 
 
@@ -114,13 +115,20 @@ def build(plays):
     tracks_all = defaultdict(lambda: {"ms": 0, "plays": 0, "track_id": None})
     artists_year = defaultdict(lambda: defaultdict(lambda: {"ms": 0, "plays": 0}))
     tracks_year = defaultdict(lambda: defaultdict(lambda: {"ms": 0, "plays": 0, "track_id": None}))
+    monthly = defaultdict(lambda: {"ms": 0, "plays": 0, "artists": set()})
+    artists_month = defaultdict(lambda: defaultdict(lambda: {"ms": 0, "plays": 0}))
+    tracks_month = defaultdict(lambda: defaultdict(lambda: {"ms": 0, "plays": 0, "track_id": None}))
     skips = Counter()
 
     for p in plays:
         lt, ms = p["local"], p["ms"]
         counted = 1 if ms >= PLAY_THRESHOLD_MS else 0
-        day, year = lt.date().isoformat(), lt.year
+        day, year, month = lt.date().isoformat(), lt.year, lt.strftime("%Y-%m")
         tkey = (p["track"], p["artist"])
+        m = monthly[month]
+        m["ms"] += ms
+        m["plays"] += counted
+        m["artists"].add(p["artist"])
 
         daily[day]["ms"] += ms
         daily[day]["plays"] += counted
@@ -131,10 +139,10 @@ def build(plays):
         y["tracks"].add(tkey)
         hour_weekday[lt.weekday()][lt.hour] += ms
 
-        for bucket in (artists_all[p["artist"]], artists_year[year][p["artist"]]):
+        for bucket in (artists_all[p["artist"]], artists_year[year][p["artist"]], artists_month[month][p["artist"]]):
             bucket["ms"] += ms
             bucket["plays"] += counted
-        for bucket in (tracks_all[tkey], tracks_year[year][tkey]):
+        for bucket in (tracks_all[tkey], tracks_year[year][tkey], tracks_month[month][tkey]):
             bucket["ms"] += ms
             bucket["plays"] += counted
             bucket["track_id"] = bucket["track_id"] or p["track_id"]
@@ -160,14 +168,20 @@ def build(plays):
             "unique_artists": len(v["artists"]), "unique_tracks": len(v["tracks"]),
             "top_artist": ranked(artists_year[yr], 1)[0]["name"] if artists_year[yr] else None,
         } for yr, v in sorted(yearly.items())],
+        "monthly": [{
+            "month": mo, "minutes": minutes(v["ms"]), "plays": v["plays"], "unique_artists": len(v["artists"]),
+            "top_artist": ranked(artists_month[mo], 1)[0]["name"] if artists_month[mo] else None,
+        } for mo, v in sorted(monthly.items())],
         "hour_weekday": {
             "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
             "minutes": [[minutes(ms) for ms in row] for row in hour_weekday],
         },
         "top_artists": {"all_time": ranked(artists_all, TOP_N_ALL_TIME),
-                        "by_year": {str(yr): ranked(a, TOP_N_PER_YEAR) for yr, a in sorted(artists_year.items())}},
+                        "by_year": {str(yr): ranked(a, TOP_N_PER_YEAR) for yr, a in sorted(artists_year.items())},
+                        "by_month": {mo: ranked(a, TOP_N_PER_MONTH) for mo, a in sorted(artists_month.items())}},
         "top_tracks": {"all_time": ranked(tracks_all, TOP_N_ALL_TIME),
-                       "by_year": {str(yr): ranked(t, TOP_N_PER_YEAR) for yr, t in sorted(tracks_year.items())}},
+                       "by_year": {str(yr): ranked(t, TOP_N_PER_YEAR) for yr, t in sorted(tracks_year.items())},
+                       "by_month": {mo: ranked(t, TOP_N_PER_MONTH) for mo, t in sorted(tracks_month.items())}},
         # inputs for later enrichment steps (genres via Last.fm, BPM via ReccoBeats/Deezer)
         "artists_index": ranked(artists_all, len(artists_all)),
         "tracks_index": [t for t in ranked(tracks_all, TRACK_INDEX_SIZE) if t.get("track_id")],

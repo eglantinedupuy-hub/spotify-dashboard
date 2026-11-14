@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/* Spotify-inspired dark palette. Change colours here and the whole site follows. */
+@theme {
+  --color-background: #121212;
+  --color-card: #181818;
+  --color-card-hover: #242424;
+  --color-foreground: #ffffff;
+  --color-muted: #a7a7a7;
+  --color-accent: #1db954; /* Spotify green */
+  --color-negative: #f15e6c;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
