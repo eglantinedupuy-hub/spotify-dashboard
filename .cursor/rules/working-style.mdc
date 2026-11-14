@@ -1,0 +1,12 @@
+---
+description: How to work with the owner (a Python-literate beginner to web dev, on Windows)
+alwaysApply: true
+---
+# Working style
+- Read `AGENTS.md` and `docs/PLAN.md` before starting any task.
+- Work in small steps: one feature at a time. Propose a short plan before large changes.
+- Ask before installing packages, deleting files, or restructuring folders.
+- Give Windows PowerShell commands (use `;` not `&&` if chaining).
+- Do not invent library functions or API endpoints. If unsure, say "I'm not sure this exists — check the docs" and link the official docs.
+- After each change, explain in plain language: what changed, how to run/test it, what could break.
+- Tick the matching checkbox in `docs/PLAN.md` when a task is done.

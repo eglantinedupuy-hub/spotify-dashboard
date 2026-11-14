@@ -1,0 +1,12 @@
+---
+description: Conventions for the Next.js dashboard
+globs: web/**
+alwaysApply: false
+---
+# Web app (Next.js App Router + TypeScript + Tailwind + Recharts)
+- Public pages are static and read pre-computed JSON from `web/public/data/` (copied from `data/processed/`). No API calls needed to view the dashboard.
+- Spotify login is owner-only and only needed for owner features (create playlist). Use the Authorization Code flow with PKCE or a server-side route; keep the client secret server-side only.
+- Spotify redirect URI must use `http://127.0.0.1:3000/...` locally (never `localhost`). Run the dev server with `npm run dev -- --hostname 127.0.0.1`.
+- Spotify endpoints change often — check `docs/DATA_SOURCES.md` before using one. Removed for our app type: batch `GET /tracks`, `GET /artists`, audio features, recommendations, artist top-tracks, popularity fields.
+- Keep components small; one chart per component in `web/src/components/charts/`.
+- Add a visible "Powered by Last.fm" credit wherever Last.fm-derived data (genres) is shown.

@@ -1,0 +1,13 @@
+---
+description: Conventions for the Python data pipeline
+globs: pipeline/**/*.py
+alwaysApply: false
+---
+# Python pipeline
+- Python 3.10+. Prefer the standard library; ask before adding dependencies (add them to `pipeline/requirements.txt`).
+- Scripts read from `data/raw/` and write small JSON files to `data/processed/` (or the `--out` path).
+- Spotify export timestamps (`ts`) are UTC. Convert to `America/Toronto` with `zoneinfo` (Windows needs the `tzdata` package).
+- Handle missing/null fields gracefully (podcast rows have no track name; older exports have different fields).
+- Cache external API lookups (Last.fm tags, BPM) in `data/raw/cache/` so re-runs don't re-fetch. Respect rate limits: sleep between calls and back off on HTTP 429.
+- Output JSON should be compact and only contain what the dashboard needs.
+- Always test changes against `pipeline/sample_data/` first.

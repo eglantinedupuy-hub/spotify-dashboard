@@ -1,0 +1,5 @@
+# process_export.py only needs the standard library + tzdata (time zones on Windows)
+tzdata
+# for the API scripts coming next (Last.fm, BPM)
+requests
+python-dotenv
