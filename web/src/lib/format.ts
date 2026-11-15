@@ -8,6 +8,21 @@ export function monthLabel(month: string): string {
   return `${MONTHS[m - 1]} ${y}`;
 }
 
+export const MONTH_SHORT = MONTHS.map((m) => m.slice(0, 3));
+
+/** "2026-10-05" -> "Oct 5, 2026" */
+export function dayLabel(date: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  return `${MONTH_SHORT[m - 1]} ${d}, ${y}`;
+}
+
+/** 0-23 -> "10 PM" */
+export function hourLabel(h: number): string {
+  const suffix = h < 12 ? "AM" : "PM";
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${hour} ${suffix}`;
+}
+
 /** 12345.6 -> "12,346" */
 export function formatNumber(n: number): string {
   return Math.round(n).toLocaleString("en-US");

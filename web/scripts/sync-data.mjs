@@ -1,23 +1,31 @@
-// Copies the pipeline's JSON summaries into web/public/data so the site can read them.
+// Copies the pipeline's JSON summaries into web/src/data, where the site imports them.
+// Commit web/src/data: that's what Vercel builds from.
 //
-//   npm run sync-data                       -> copies from ../data/processed_sample (fake data)
-//   $env:DATA_DIR="../data/processed"; npm run sync-data   (PowerShell, real data)
+//   npm run sync-data   (also runs automatically before `npm run dev` and `npm run build`)
 //
-// Runs automatically before `npm run dev` (see "predev" in package.json).
-import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+// Source: ../data/processed (my real data) if it exists, otherwise ../data/processed_sample (fake data).
+// Override with DATA_DIR, e.g. PowerShell: $env:DATA_DIR="../data/processed_sample"; npm run dev
+import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 
 const webDir = path.resolve(import.meta.dirname, "..");
-const source = path.resolve(webDir, process.env.DATA_DIR ?? "../data/processed_sample");
-const target = path.join(webDir, "public", "data");
+const real = path.resolve(webDir, "../data/processed");
+const sample = path.resolve(webDir, "../data/processed_sample");
+const source = process.env.DATA_DIR
+  ? path.resolve(webDir, process.env.DATA_DIR)
+  : existsSync(path.join(real, "summary.json"))
+    ? real
+    : sample;
+const target = path.join(webDir, "src", "data");
 
-if (!existsSync(source)) {
-  console.error(`sync-data: source folder not found: ${source}`);
-  console.error("Run the pipeline first: python pipeline/process_export.py --input pipeline/sample_data --out data/processed_sample");
-  process.exit(1);
-}
+// Only the files the website uses (artists_index / tracks_index are pipeline-only and large)
+const FILES = ["summary", "daily", "monthly", "yearly", "hour_weekday", "top_artists", "top_tracks"];
 
 mkdirSync(target, { recursive: true });
-const files = readdirSync(source).filter((f) => f.endsWith(".json"));
-for (const f of files) cpSync(path.join(source, f), path.join(target, f));
-console.log(`sync-data: copied ${files.length} file(s) from ${path.relative(webDir, source)} to public/data`);
+if (!existsSync(path.join(source, "summary.json"))) {
+  // e.g. on Vercel if only the web/ folder is available: use the committed copies in src/data
+  console.log(`sync-data: ${source} not found, using the committed files in src/data`);
+} else {
+  for (const f of FILES) copyFileSync(path.join(source, `${f}.json`), path.join(target, `${f}.json`));
+  console.log(`sync-data: copied ${FILES.length} files from ${path.relative(webDir, source)} to src/data`);
+}

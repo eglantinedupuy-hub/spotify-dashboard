@@ -1,7 +1,12 @@
-// Server-side helpers that read the JSON summaries from public/data.
-// These run at build/request time on the server, never in the browser.
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+// Typed access to the JSON summaries in src/data (copied there by `npm run sync-data`).
+// They're imported directly, so they're bundled into the build: works locally and on Vercel.
+import summaryJson from "@/data/summary.json";
+import dailyJson from "@/data/daily.json";
+import monthlyJson from "@/data/monthly.json";
+import yearlyJson from "@/data/yearly.json";
+import hourWeekdayJson from "@/data/hour_weekday.json";
+import topArtistsJson from "@/data/top_artists.json";
+import topTracksJson from "@/data/top_tracks.json";
 
 export type Summary = {
   generated_at: string;
@@ -21,18 +26,15 @@ export type RankedArtist = { name: string; minutes: number; plays: number };
 export type RankedTrack = RankedArtist & { artist: string; track_id?: string };
 export type TopLists<T> = { all_time: T[]; by_year: Record<string, T[]>; by_month: Record<string, T[]> };
 
-async function readJson<T>(name: string): Promise<T> {
-  const file = path.join(process.cwd(), "public", "data", `${name}.json`);
-  try {
-    return JSON.parse(await readFile(file, "utf-8")) as T;
-  } catch {
-    throw new Error(`Could not read public/data/${name}.json — run "npm run sync-data" first.`);
-  }
-}
+// The JSON's inferred type is replaced by the hand-written types above.
+const load = <T,>(json: unknown) => async () => json as T;
 
-export const getSummary = () => readJson<Summary>("summary");
-export const getDaily = () => readJson<DayStat[]>("daily");
-export const getMonthly = () => readJson<MonthStat[]>("monthly");
-export const getYearly = () => readJson<YearStat[]>("yearly");
-export const getTopArtists = () => readJson<TopLists<RankedArtist>>("top_artists");
-export const getTopTracks = () => readJson<TopLists<RankedTrack>>("top_tracks");
+export const getSummary = load<Summary>(summaryJson);
+export const getDaily = load<DayStat[]>(dailyJson);
+export const getMonthly = load<MonthStat[]>(monthlyJson);
+export const getYearly = load<YearStat[]>(yearlyJson);
+export const getTopArtists = load<TopLists<RankedArtist>>(topArtistsJson);
+export const getTopTracks = load<TopLists<RankedTrack>>(topTracksJson);
+
+export type HourWeekday = { weekdays: string[]; minutes: number[][] }; // minutes[weekday Mon=0][hour 0-23]
+export const getHourWeekday = load<HourWeekday>(hourWeekdayJson);

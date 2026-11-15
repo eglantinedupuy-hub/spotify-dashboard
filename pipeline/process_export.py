@@ -26,8 +26,35 @@ try:
     from zoneinfo import ZoneInfo
     LOCAL_TZ = ZoneInfo("America/Toronto")
 except Exception:  # tzdata missing (common on Windows) -> fall back to UTC
+    ZoneInfo = None
     LOCAL_TZ = timezone.utc
     print("WARNING: time zone data not found, using UTC. Fix with: pip install tzdata")
+
+# Each play is converted to the local time of the country it was played in (Spotify's `conn_country`),
+# so "10 AM in Brussels" counts as 10 AM, not 4 AM Toronto time. Countries spanning several time zones
+# use the one I'm most likely to have been in. Unknown countries keep the previous play's time zone.
+COUNTRY_TZ = {
+    "AU": "Australia/Sydney", "BE": "Europe/Brussels", "CA": "America/Toronto", "CH": "Europe/Zurich",
+    "CL": "America/Santiago", "CR": "America/Costa_Rica", "DE": "Europe/Berlin", "DK": "Europe/Copenhagen",
+    "ES": "Europe/Madrid", "FR": "Europe/Paris", "GB": "Europe/London", "GR": "Europe/Athens",
+    "HK": "Asia/Hong_Kong", "IE": "Europe/Dublin", "IL": "Asia/Jerusalem", "IT": "Europe/Rome",
+    "KH": "Asia/Phnom_Penh", "LU": "Europe/Luxembourg", "MT": "Europe/Malta", "MX": "America/Mexico_City",
+    "NL": "Europe/Amsterdam", "NZ": "Pacific/Auckland", "PH": "Asia/Manila", "PT": "Europe/Lisbon",
+    "QA": "Asia/Qatar", "SE": "Europe/Stockholm", "TH": "Asia/Bangkok", "US": "America/New_York",
+    "VN": "Asia/Ho_Chi_Minh", "AT": "Europe/Vienna", "IS": "Atlantic/Reykjavik", "JP": "Asia/Tokyo",
+    "MA": "Africa/Casablanca", "NO": "Europe/Oslo", "PL": "Europe/Warsaw", "CZ": "Europe/Prague",
+}
+_tz_cache = {}
+
+
+def tz_for(country):
+    """ZoneInfo for a country code, or None if unknown."""
+    name = COUNTRY_TZ.get(country or "")
+    if not name or ZoneInfo is None:
+        return None
+    if name not in _tz_cache:
+        _tz_cache[name] = ZoneInfo(name)
+    return _tz_cache[name]
 
 PLAY_THRESHOLD_MS = 30_000
 TOP_N_ALL_TIME = 100
@@ -61,6 +88,7 @@ def normalize(row: dict):
             "album": row.get("master_metadata_album_album_name") or "",
             "track_id": uri.split(":")[-1] if uri.startswith("spotify:track:") else None,
             "skipped": bool(row.get("skipped")),
+            "country": row.get("conn_country"),  # only used to pick the time zone; never written out
         }
     if "endTime" in row:  # basic account-data format, times are "YYYY-MM-DD HH:MM" in UTC
         track, artist = row.get("trackName"), row.get("artistName")
@@ -68,7 +96,7 @@ def normalize(row: dict):
             return None
         ts = datetime.strptime(row["endTime"], "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc)
         return {"ts": ts, "ms": int(row.get("msPlayed") or 0), "track": track, "artist": artist,
-                "album": "", "track_id": None, "skipped": False}
+                "album": "", "track_id": None, "skipped": False, "country": None}
     return None
 
 
@@ -88,9 +116,13 @@ def load_plays(input_dir: Path):
             if key in seen:
                 continue
             seen.add(key)
-            p["local"] = p["ts"].astimezone(LOCAL_TZ)
             plays.append(p)
     plays.sort(key=lambda p: p["ts"])
+    # local time = time in the country of each play (carry the last known zone over unknown countries)
+    current = LOCAL_TZ
+    for p in plays:
+        current = tz_for(p.pop("country")) or current
+        p["local"] = p["ts"].astimezone(current)
     print(f"Read {len(files)} file(s), {len(plays)} music rows.")
     return plays
 
@@ -153,7 +185,7 @@ def build(plays):
     out = {
         "summary": {
             "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "timezone": str(LOCAL_TZ),
+            "timezone": "local time of the country each song was played in",
             "first_play": plays[0]["local"].date().isoformat(),
             "last_play": plays[-1]["local"].date().isoformat(),
             "total_minutes": minutes(total_ms),

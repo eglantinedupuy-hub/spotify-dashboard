@@ -29,7 +29,7 @@ export function MinutesPerYearChart({ data, highlightYear }: Props) {
             labelStyle={{ color: "#a7a7a7" }}
             formatter={(value) => [`${formatNumber(Number(value))} min`, "Listened"]}
           />
-          <Bar dataKey="minutes" radius={[8, 8, 0, 0]}>
+          <Bar dataKey="minutes" radius={[4, 4, 0, 0]} maxBarSize={24}>
             {data.map((d) => (
               <Cell key={d.year} fill={d.year === highlightYear ? "#1db954" : "#535353"} />
             ))}
