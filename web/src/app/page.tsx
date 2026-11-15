@@ -2,14 +2,15 @@ import { StatCard } from "@/components/StatCard";
 import { TopItemCard } from "@/components/TopItemCard";
 import { Card } from "@/components/Card";
 import { MinutesPerYearChart } from "@/components/charts/MinutesPerYearChart";
-import { getDaily, getMonthly, getSummary, getTopArtists, getTopTracks, getYearly } from "@/lib/data";
+import { getDaily, getMonthly, getSpotifyApi, getSummary, getTopArtists, getTopTracks, getYearly } from "@/lib/data";
+import { RightNow } from "@/components/RightNow";
 import { formatNumber, monthLabel, percentChange } from "@/lib/format";
 
 // Overview: "this month" and "this year" at a glance.
 // "This month" = the latest month in the data (until live daily refresh exists).
 export default async function OverviewPage() {
-  const [summary, daily, monthly, yearly, topArtists, topTracks] = await Promise.all([
-    getSummary(), getDaily(), getMonthly(), getYearly(), getTopArtists(), getTopTracks(),
+  const [summary, daily, monthly, yearly, topArtists, topTracks, api] = await Promise.all([
+    getSummary(), getDaily(), getMonthly(), getYearly(), getTopArtists(), getTopTracks(), getSpotifyApi(),
   ]);
 
   // --- This month ---
@@ -92,6 +93,8 @@ export default async function OverviewPage() {
           />
         </div>
       </section>
+
+      <RightNow api={api} />
 
       <section className="space-y-4">
         <h2 className="text-xl font-bold">Minutes per year</h2>
