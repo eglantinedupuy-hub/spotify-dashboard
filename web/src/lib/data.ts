@@ -8,6 +8,9 @@ import hourWeekdayJson from "@/data/hour_weekday.json";
 import topArtistsJson from "@/data/top_artists.json";
 import topTracksJson from "@/data/top_tracks.json";
 import spotifyApiJson from "@/data/spotify_api.json";
+import genresJson from "@/data/genres.json";
+import libraryJson from "@/data/library.json";
+import personasJson from "@/data/personas.json";
 
 export type Summary = {
   generated_at: string;
@@ -55,3 +58,66 @@ export type SpotifyApi = {
 };
 /** Empty until pipeline/spotify_fetch.py has been run. */
 export const getSpotifyApi = load<SpotifyApi>(spotifyApiJson);
+
+// --- Genres from Last.fm tags (pipeline/lastfm_genres.py) ---
+export type GenreTop = { artists: { name: string; minutes: number }[]; tracks: { name: string; artist: string; minutes: number; track_id?: string | null }[] };
+export type Genres = {
+  source: string;
+  genres: string[]; // main genres, in display order ("French" overlaps with the others)
+  electronic_subgenres: string[];
+  by_month: Record<string, Record<string, number>>; // "2024-05" -> genre -> minutes (+ "Unclassified")
+  by_month_electronic: Record<string, Record<string, number>>; // "2024-05" -> electronic subgenre -> minutes
+  total_by_month: Record<string, number>;
+  artists: Record<string, { g: string; sub?: string; fr?: boolean }>; // my top 1,000 artists
+  top_by_genre: Record<string, Record<string, GenreTop>>; // genre or subgenre -> "all" | "2024" -> top lists
+  coverage: number;
+  min_plays: number;
+};
+export const getGenres = load<Genres>(genresJson);
+
+// --- Liked but never played (pipeline/library_check.py) ---
+export type LibraryTrack = ApiTrack & {
+  added_at: string | null;
+  plays: number;
+  starts?: number; // times I started it (any length)
+  skips?: number; // starts I stopped before 30 s
+  last_played: string | null;
+  genre?: string | null; // main genre of the first artist (Last.fm)
+  style?: string | null; // electronic subgenre
+  french?: boolean;
+  playlists?: string[]; // playlist songs only: which of my playlists it's in
+  liked?: boolean;
+};
+export type BarelyPlaylist = { id: string; name: string; url: string | null; image: string | null; tracks: number; played_pct: number };
+export type Library = {
+  liked_total: number;
+  followed_total: number;
+  playlists_read?: number;
+  barely?: number;
+  liked_never_played: LibraryTrack[];
+  liked_barely_played: LibraryTrack[];
+  playlist_unplayed?: LibraryTrack[];
+  playlists_barely_listened?: BarelyPlaylist[];
+  followed_barely_listened: (Omit<ApiArtist, "genres"> & { minutes: number })[];
+};
+export const getLibrary = load<Library>(libraryJson);
+
+// --- Listener personas (pipeline/personas.py) ---
+export type PersonaFit = { id: string; title: string; adj: string; description: string; stat: string; value: number; threshold: number; fit: number };
+export type PersonaProfile = {
+  name: string; // e.g. "Night-owl Loyalist"
+  when: PersonaFit[]; // best fit first
+  how: PersonaFit[];
+  fits: boolean; // false = closest match only
+  stats: Record<string, number | null>;
+  from: string;
+  to: string;
+};
+export type Personas = {
+  now: PersonaProfile | null; // last 12 months
+  all_time: PersonaProfile | null;
+  by_year: Record<string, string>;
+  stat_labels: Record<string, string>;
+};
+/** Empty until pipeline/personas.py has been run. */
+export const getPersonas = load<Personas>(personasJson);

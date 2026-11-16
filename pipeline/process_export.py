@@ -88,6 +88,8 @@ def normalize(row: dict):
             "album": row.get("master_metadata_album_album_name") or "",
             "track_id": uri.split(":")[-1] if uri.startswith("spotify:track:") else None,
             "skipped": bool(row.get("skipped")),
+            "shuffle": row.get("shuffle"),  # True / False / None (unknown)
+            "reason_end": row.get("reason_end"),  # e.g. "trackdone", "fwdbtn" (used by personas.py)
             "country": row.get("conn_country"),  # only used to pick the time zone; never written out
         }
     if "endTime" in row:  # basic account-data format, times are "YYYY-MM-DD HH:MM" in UTC
@@ -96,7 +98,7 @@ def normalize(row: dict):
             return None
         ts = datetime.strptime(row["endTime"], "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc)
         return {"ts": ts, "ms": int(row.get("msPlayed") or 0), "track": track, "artist": artist,
-                "album": "", "track_id": None, "skipped": False, "country": None}
+                "album": "", "track_id": None, "skipped": False, "shuffle": None, "reason_end": None, "country": None}
     return None
 
 

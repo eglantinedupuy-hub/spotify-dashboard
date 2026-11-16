@@ -39,9 +39,9 @@ export default async function TopPage({ searchParams }: PageProps<"/top">) {
           {[...yearly].reverse().map((y) => (
             <Chip key={y.year} href={`/top?period=${y.year}`} active={selectedYear === String(y.year)}>{y.year}</Chip>
           ))}
-          <span className="rounded-full border border-white/10 px-4 py-1.5 text-sm text-muted/60" title="Coming once genre data is added">
-            Genre · soon
-          </span>
+          <Link href="/genres" className="rounded-full border border-white/10 px-4 py-1.5 text-sm text-muted transition hover:text-foreground">
+            By genre →
+          </Link>
         </div>
         {selectedYear && (
           <div className="flex flex-wrap gap-2">

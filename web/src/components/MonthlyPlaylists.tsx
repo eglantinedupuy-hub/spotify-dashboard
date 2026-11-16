@@ -12,11 +12,8 @@ type Props = { playlists: MonthlyPlaylist[]; currentMonth: number; currentYear: 
 export function MonthlyPlaylists({ playlists, currentMonth, currentYear }: Props) {
   const [month, setMonth] = useState(currentMonth);
   const count = (m: number) => playlists.filter((p) => p.month === m).length;
-  const shown = playlists.filter((p) => p.month === month).sort((a, b) => b.year - a.year);
-  // "from previous years" for the current month; any year for other months
-  const isThisMonth = month === currentMonth;
-  const pastOnly = isThisMonth ? shown.filter((p) => p.year < currentYear) : shown;
-  const thisYears = isThisMonth ? shown.find((p) => p.year === currentYear) : undefined;
+  const shown = playlists.filter((p, i, all) => p.month === month && all.findIndex((q) => q.id === p.id && q.month === p.month) === i).sort((a, b) => b.year - a.year);
+  const inProgress = (p: MonthlyPlaylist) => p.year === currentYear && p.month === currentMonth;
 
   return (
     <div className="space-y-6">
@@ -39,22 +36,13 @@ export function MonthlyPlaylists({ playlists, currentMonth, currentYear }: Props
         ))}
       </div>
 
-      {thisYears && (
-        <p className="text-sm text-muted">
-          This year’s is in progress:{" "}
-          <a href={thisYears.url ?? "#"} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
-            {thisYears.name} ↗
-          </a>
-        </p>
-      )}
-
-      {pastOnly.length === 0 ? (
-        <p className="rounded-2xl bg-card p-6 text-muted">No {MONTHS[month - 1]} playlists from previous years.</p>
+      {shown.length === 0 ? (
+        <p className="rounded-2xl bg-card p-6 text-muted">No {MONTHS[month - 1]} playlists yet.</p>
       ) : (
         <div key={month} className="grid animate-[fade_300ms_ease-out] grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {pastOnly.map((p) => (
+          {shown.map((p) => (
             <a
-              key={p.id}
+              key={`${p.id}-${p.month}`}
               href={p.url ?? "#"}
               target="_blank"
               rel="noopener noreferrer"
@@ -70,7 +58,10 @@ export function MonthlyPlaylists({ playlists, currentMonth, currentYear }: Props
                   ▶
                 </span>
               </div>
-              <p className="mt-3 truncate font-semibold">{p.name}</p>
+              <p className="mt-3 flex items-center gap-2 font-semibold">
+                <span className="truncate">{p.name}</span>
+                {inProgress(p) && <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-black">Now</span>}
+              </p>
               <p className="text-sm text-muted">
                 {p.year}
                 {p.tracks != null && ` · ${p.tracks} songs`}

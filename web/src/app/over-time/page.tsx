@@ -63,6 +63,16 @@ export default async function OverTimePage() {
   const daysElapsed = lastIndex + 1 - (!isLeap(currentYear) && lastIndex >= 59 ? 1 : 0);
   const daysInYear = isLeap(currentYear) ? 366 : 365;
   const projected = (thisYearSoFar / daysElapsed) * daysInYear;
+  // Put big minute totals in human terms: days of non-stop listening and share of the time that passed
+  const nonStop = (min: number) => {
+    const days = min / 1440;
+    return days >= 60 ? `≈ ${(days / 30.44).toFixed(1)} months non-stop` : `≈ ${Math.round(days)} days non-stop`;
+  };
+  const shareOf = (min: number, days: number) => `${((min / (days * 1440)) * 100).toFixed(1)}%`;
+  const soFarNote = `${nonStop(thisYearSoFar)} · ${shareOf(thisYearSoFar, daysElapsed)} of the year so far`;
+  const recordNote = record
+    ? `${nonStop(record.minutes)} · ${shareOf(record.minutes, isLeap(record.year) ? 366 : 365)} of ${record.year}`
+    : "";
 
   return (
     <div className="space-y-10">
@@ -81,10 +91,10 @@ export default async function OverTimePage() {
       <section className="space-y-4">
         <div>
           <h2 className="text-xl font-bold">Race to my record</h2>
-          <p className="text-sm text-muted">Running total of minutes through each year (last 5 years + my record year). Based on my own data, so it can differ a little from Spotify Wrapped.</p>
+          <p className="text-sm text-muted">Running total of minutes through each year (last 5 years + my record year).</p>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-          <StatCard label={`${currentYear} so far`} value={thisYearSoFar} unit="min" />
+          <StatCard label={`${currentYear} so far`} value={thisYearSoFar} unit="min" note={soFarNote} />
           <StatCard label={`Projected ${currentYear} total`} value={projected} unit="min" />
           {record ? (
             <StatCard
@@ -93,6 +103,7 @@ export default async function OverTimePage() {
               unit="min"
               change={((projected - record.minutes) / record.minutes) * 100}
               changeLabel="projected vs record"
+              note={recordNote}
             />
           ) : (
             <Card><p className="text-sm text-muted">No earlier year to compare yet.</p></Card>

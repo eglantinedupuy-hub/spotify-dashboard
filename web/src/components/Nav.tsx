@@ -8,7 +8,9 @@ const LINKS = [
   { href: "/over-time", label: "Over time" },
   { href: "/habits", label: "Habits" },
   { href: "/top", label: "Top" },
+  { href: "/genres", label: "Genres" },
   { href: "/playlists", label: "Playlists" },
+  { href: "/library", label: "Unplayed" },
 ];
 
 /** Top navigation bar; highlights the current page. */

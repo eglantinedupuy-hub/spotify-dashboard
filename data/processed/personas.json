@@ -1,0 +1,414 @@
+{
+ "now": {
+  "name": "Always-on Marathoner",
+  "when": [
+   {
+    "id": "always_on",
+    "title": "Always on",
+    "adj": "Always-on",
+    "description": "Music almost every day, at every hour",
+    "stat": "days_share",
+    "value": 0.9836,
+    "threshold": 0.92,
+    "fit": 1.069
+   },
+   {
+    "id": "nine_to_five",
+    "title": "9-to-5 soundtrack",
+    "adj": "9-to-5",
+    "description": "Music to work and study to",
+    "stat": "workday_share",
+    "value": 0.452,
+    "threshold": 0.45,
+    "fit": 1.004
+   },
+   {
+    "id": "weekend",
+    "title": "Weekend binger",
+    "adj": "Weekend",
+    "description": "Saves the big sessions for Saturday and Sunday",
+    "stat": "weekend_share",
+    "value": 0.2969,
+    "threshold": 0.38,
+    "fit": 0.781
+   },
+   {
+    "id": "early_bird",
+    "title": "Early bird",
+    "adj": "Early-bird",
+    "description": "Music starts with the morning coffee",
+    "stat": "morning_share",
+    "value": 0.1566,
+    "threshold": 0.25,
+    "fit": 0.626
+   },
+   {
+    "id": "night_owl",
+    "title": "Night owl",
+    "adj": "Night-owl",
+    "description": "Most alive after 10 pm",
+    "stat": "night_share",
+    "value": 0.085,
+    "threshold": 0.25,
+    "fit": 0.34
+   }
+  ],
+  "how": [
+   {
+    "id": "marathoner",
+    "title": "Marathoner",
+    "adj": "Marathoner",
+    "description": "Long, uninterrupted listening sessions",
+    "stat": "long_session_share",
+    "value": 0.5509,
+    "threshold": 0.45,
+    "fit": 1.224
+   },
+   {
+    "id": "shuffler",
+    "title": "Shuffler",
+    "adj": "Shuffler",
+    "description": "Lets shuffle decide",
+    "stat": "shuffle_share",
+    "value": 0.648,
+    "threshold": 0.6,
+    "fit": 1.08
+   },
+   {
+    "id": "explorer",
+    "title": "Explorer",
+    "adj": "Explorer",
+    "description": "Always digging for new artists",
+    "stat": "new_artist_rate",
+    "value": 0.0422,
+    "threshold": 0.04,
+    "fit": 1.055
+   },
+   {
+    "id": "album",
+    "title": "Album listener",
+    "adj": "Album listener",
+    "description": "Lets albums and playlists play in order",
+    "stat": "in_order_share",
+    "value": 0.352,
+    "threshold": 0.6,
+    "fit": 0.587
+   },
+   {
+    "id": "skipper",
+    "title": "Skipper",
+    "adj": "Skipper",
+    "description": "Quick to hit next",
+    "stat": "skip_rate",
+    "value": 0.1628,
+    "threshold": 0.35,
+    "fit": 0.465
+   },
+   {
+    "id": "loyalist",
+    "title": "Loyalist",
+    "adj": "Loyalist",
+    "description": "Keeps coming back to the same favourite artists",
+    "stat": "top10_share",
+    "value": 0.0799,
+    "threshold": 0.3,
+    "fit": 0.266
+   },
+   {
+    "id": "repeater",
+    "title": "On repeat",
+    "adj": "Repeater",
+    "description": "Finds a song and plays it into the ground",
+    "stat": "repeat_share",
+    "value": 0.0273,
+    "threshold": 0.2,
+    "fit": 0.136
+   }
+  ],
+  "fits": true,
+  "stats": {
+   "night_share": 0.085,
+   "morning_share": 0.1566,
+   "workday_share": 0.452,
+   "weekend_share": 0.2969,
+   "days_share": 0.9836,
+   "top10_share": 0.0799,
+   "new_artist_rate": 0.0422,
+   "repeat_share": 0.0273,
+   "long_session_share": 0.5509,
+   "skip_rate": 0.1628,
+   "shuffle_share": 0.648,
+   "in_order_share": 0.352,
+   "median_session_min": 36.5,
+   "minutes_per_day": 193.3,
+   "peak_hour": 15
+  },
+  "from": "2025-11-14",
+  "to": "2026-11-13"
+ },
+ "all_time": {
+  "name": "9-to-5 Explorer",
+  "when": [
+   {
+    "id": "nine_to_five",
+    "title": "9-to-5 soundtrack",
+    "adj": "9-to-5",
+    "description": "Music to work and study to",
+    "stat": "workday_share",
+    "value": 0.4426,
+    "threshold": 0.45,
+    "fit": 0.984
+   },
+   {
+    "id": "always_on",
+    "title": "Always on",
+    "adj": "Always-on",
+    "description": "Music almost every day, at every hour",
+    "stat": "days_share",
+    "value": 0.741,
+    "threshold": 0.92,
+    "fit": 0.805
+   },
+   {
+    "id": "early_bird",
+    "title": "Early bird",
+    "adj": "Early-bird",
+    "description": "Music starts with the morning coffee",
+    "stat": "morning_share",
+    "value": 0.1709,
+    "threshold": 0.25,
+    "fit": 0.684
+   },
+   {
+    "id": "weekend",
+    "title": "Weekend binger",
+    "adj": "Weekend",
+    "description": "Saves the big sessions for Saturday and Sunday",
+    "stat": "weekend_share",
+    "value": 0.2496,
+    "threshold": 0.38,
+    "fit": 0.657
+   },
+   {
+    "id": "night_owl",
+    "title": "Night owl",
+    "adj": "Night-owl",
+    "description": "Most alive after 10 pm",
+    "stat": "night_share",
+    "value": 0.0822,
+    "threshold": 0.25,
+    "fit": 0.329
+   }
+  ],
+  "how": [
+   {
+    "id": "explorer",
+    "title": "Explorer",
+    "adj": "Explorer",
+    "description": "Always digging for new artists",
+    "stat": "new_artist_rate",
+    "value": 0.0559,
+    "threshold": 0.04,
+    "fit": 1.397
+   },
+   {
+    "id": "shuffler",
+    "title": "Shuffler",
+    "adj": "Shuffler",
+    "description": "Lets shuffle decide",
+    "stat": "shuffle_share",
+    "value": 0.7737,
+    "threshold": 0.6,
+    "fit": 1.29
+   },
+   {
+    "id": "marathoner",
+    "title": "Marathoner",
+    "adj": "Marathoner",
+    "description": "Long, uninterrupted listening sessions",
+    "stat": "long_session_share",
+    "value": 0.4098,
+    "threshold": 0.45,
+    "fit": 0.911
+   },
+   {
+    "id": "skipper",
+    "title": "Skipper",
+    "adj": "Skipper",
+    "description": "Quick to hit next",
+    "stat": "skip_rate",
+    "value": 0.3038,
+    "threshold": 0.35,
+    "fit": 0.868
+   },
+   {
+    "id": "album",
+    "title": "Album listener",
+    "adj": "Album listener",
+    "description": "Lets albums and playlists play in order",
+    "stat": "in_order_share",
+    "value": 0.2263,
+    "threshold": 0.6,
+    "fit": 0.377
+   },
+   {
+    "id": "repeater",
+    "title": "On repeat",
+    "adj": "Repeater",
+    "description": "Finds a song and plays it into the ground",
+    "stat": "repeat_share",
+    "value": 0.0627,
+    "threshold": 0.2,
+    "fit": 0.314
+   },
+   {
+    "id": "loyalist",
+    "title": "Loyalist",
+    "adj": "Loyalist",
+    "description": "Keeps coming back to the same favourite artists",
+    "stat": "top10_share",
+    "value": 0.0619,
+    "threshold": 0.3,
+    "fit": 0.206
+   }
+  ],
+  "fits": false,
+  "stats": {
+   "night_share": 0.0822,
+   "morning_share": 0.1709,
+   "workday_share": 0.4426,
+   "weekend_share": 0.2496,
+   "days_share": 0.741,
+   "top10_share": 0.0619,
+   "new_artist_rate": 0.0559,
+   "repeat_share": 0.0627,
+   "long_session_share": 0.4098,
+   "skip_rate": 0.3038,
+   "shuffle_share": 0.7737,
+   "in_order_share": 0.2263,
+   "median_session_min": 30.7,
+   "minutes_per_day": 164.4,
+   "peak_hour": 11
+  },
+  "from": "2013-02-01",
+  "to": "2026-11-13"
+ },
+ "by_year": {
+  "2013": "Weekend Explorer",
+  "2016": "Always-on Explorer",
+  "2017": "Always-on Shuffler",
+  "2018": "Always-on Shuffler",
+  "2019": "Always-on Shuffler",
+  "2020": "Always-on Shuffler",
+  "2021": "Always-on Explorer",
+  "2022": "Always-on Explorer",
+  "2023": "9-to-5 Explorer",
+  "2024": "9-to-5 Explorer",
+  "2025": "9-to-5 Explorer",
+  "2026": "Always-on Marathoner"
+ },
+ "personas": {
+  "when": [
+   {
+    "id": "night_owl",
+    "title": "Night owl",
+    "description": "Most alive after 10 pm",
+    "stat": "night_share",
+    "threshold": 0.25
+   },
+   {
+    "id": "early_bird",
+    "title": "Early bird",
+    "description": "Music starts with the morning coffee",
+    "stat": "morning_share",
+    "threshold": 0.25
+   },
+   {
+    "id": "nine_to_five",
+    "title": "9-to-5 soundtrack",
+    "description": "Music to work and study to",
+    "stat": "workday_share",
+    "threshold": 0.45
+   },
+   {
+    "id": "weekend",
+    "title": "Weekend binger",
+    "description": "Saves the big sessions for Saturday and Sunday",
+    "stat": "weekend_share",
+    "threshold": 0.38
+   },
+   {
+    "id": "always_on",
+    "title": "Always on",
+    "description": "Music almost every day, at every hour",
+    "stat": "days_share",
+    "threshold": 0.92
+   }
+  ],
+  "how": [
+   {
+    "id": "loyalist",
+    "title": "Loyalist",
+    "description": "Keeps coming back to the same favourite artists",
+    "stat": "top10_share",
+    "threshold": 0.3
+   },
+   {
+    "id": "explorer",
+    "title": "Explorer",
+    "description": "Always digging for new artists",
+    "stat": "new_artist_rate",
+    "threshold": 0.04
+   },
+   {
+    "id": "repeater",
+    "title": "On repeat",
+    "description": "Finds a song and plays it into the ground",
+    "stat": "repeat_share",
+    "threshold": 0.2
+   },
+   {
+    "id": "marathoner",
+    "title": "Marathoner",
+    "description": "Long, uninterrupted listening sessions",
+    "stat": "long_session_share",
+    "threshold": 0.45
+   },
+   {
+    "id": "skipper",
+    "title": "Skipper",
+    "description": "Quick to hit next",
+    "stat": "skip_rate",
+    "threshold": 0.35
+   },
+   {
+    "id": "album",
+    "title": "Album listener",
+    "description": "Lets albums and playlists play in order",
+    "stat": "in_order_share",
+    "threshold": 0.6
+   },
+   {
+    "id": "shuffler",
+    "title": "Shuffler",
+    "description": "Lets shuffle decide",
+    "stat": "shuffle_share",
+    "threshold": 0.6
+   }
+  ]
+ },
+ "stat_labels": {
+  "night_share": "between 10 pm and 5 am",
+  "morning_share": "between 5 and 11 am",
+  "workday_share": "on weekdays, 9 to 5",
+  "weekend_share": "on weekends",
+  "days_share": "of days with music",
+  "top10_share": "on my top 10 artists",
+  "new_artist_rate": "of plays are a new artist",
+  "repeat_share": "of plays are a same-day repeat",
+  "long_session_share": "in sessions of 2 h+",
+  "skip_rate": "skipped under 30 s",
+  "in_order_share": "with shuffle off",
+  "shuffle_share": "with shuffle on"
+ }
+}

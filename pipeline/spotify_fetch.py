@@ -3,6 +3,7 @@ Fetch my data from the Spotify Web API and save it for the dashboard:
   - my playlists, and which of them are my monthly playlists ("October 23'")
   - my top artists & tracks (last 4 weeks / 6 months / ~1 year)
   - my 50 most recently played tracks
+  - my liked songs, followed artists and the songs in my own playlists (kept private in data/raw/cache, used by library_check.py)
 
 Usage (from the project root):
     python pipeline/spotify_fetch.py
@@ -30,7 +31,7 @@ import threading
 import time
 import urllib.parse
 import webbrowser
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
@@ -40,8 +41,11 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "processed" / "spotify_api.json"
 TOKEN_FILE = ROOT / "data" / "raw" / "cache" / "spotify_token.json"
 REDIRECT = "http://127.0.0.1:8888/callback"
-SCOPES = "playlist-read-private playlist-read-collaborative user-top-read user-read-recently-played"
+SCOPES = ("playlist-read-private playlist-read-collaborative user-top-read user-read-recently-played "
+          "user-library-read user-follow-read playlist-modify-private playlist-modify-public")
+SAVED_FILE = ROOT / "data" / "raw" / "cache" / "saved_library.json"  # private: liked songs + followed artists
 API = "https://api.spotify.com/v1"
+PACE = 0.35  # seconds between requests
 
 MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]
 # "October 23'", "October 23’", "October 23", "October 2023", "May 2.0 19'" (a second playlist for that month),
@@ -61,6 +65,10 @@ def login(client_id: str) -> dict:
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            if "code" not in q and "error" not in q:  # e.g. the browser asking for /favicon.ico: ignore it
+                self.send_response(404)
+                self.end_headers()
+                return
             result["code"], result["state"], result["error"] = q.get("code", [None])[0], q.get("state", [None])[0], q.get("error", [None])[0]
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -71,17 +79,26 @@ def login(client_id: str) -> dict:
             pass
 
     server = http.server.HTTPServer(("127.0.0.1", 8888), Handler)
-    threading.Thread(target=server.handle_request, daemon=True).start()
+    server.timeout = 1
+
+    def serve():  # keep answering until Spotify sends us back with a code (or an error)
+        while not result and not stop.is_set():
+            server.handle_request()
+
+    stop = threading.Event()
+    threading.Thread(target=serve, daemon=True).start()
     url = "https://accounts.spotify.com/authorize?" + urllib.parse.urlencode({
         "client_id": client_id, "response_type": "code", "redirect_uri": REDIRECT, "scope": SCOPES,
         "code_challenge_method": "S256", "code_challenge": challenge, "state": state,
     })
     print("Opening your browser to log in to Spotify… (if it doesn't open, paste this link in your browser)\n" + url)
     webbrowser.open(url)
-    for _ in range(300):  # wait up to 5 minutes
+    for _ in range(600):  # wait up to 10 minutes
         if result:
             break
         time.sleep(1)
+    stop.set()
+    time.sleep(1.1)
     server.server_close()
     if not result.get("code") or result.get("state") != state:
         sys.exit(f"Login failed or was cancelled ({result.get('error') or 'no response'}).")
@@ -97,6 +114,9 @@ def login(client_id: str) -> dict:
 def get_token(client_id: str) -> str:
     """Reuse the saved login if possible, otherwise log in in the browser."""
     tok = json.loads(TOKEN_FILE.read_text()) if TOKEN_FILE.exists() else None
+    if tok and tok.get("scopes") != SCOPES:
+        print("New permissions needed — please log in again.")
+        tok = None
     if tok and tok.get("refresh_token"):
         r = requests.post("https://accounts.spotify.com/api/token", data={
             "grant_type": "refresh_token", "refresh_token": tok["refresh_token"], "client_id": client_id,
@@ -110,30 +130,52 @@ def get_token(client_id: str) -> str:
     if not tok:
         tok = login(client_id)
     TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
-    TOKEN_FILE.write_text(json.dumps({"refresh_token": tok.get("refresh_token")}))
+    TOKEN_FILE.write_text(json.dumps({"refresh_token": tok.get("refresh_token"), "scopes": SCOPES}))
     return tok["access_token"]
 
 
 # ---------- API helpers ----------
 
+class RateLimited(Exception):
+    """Spotify asked us to wait a long time (seconds in args[0])."""
+
+
 def api(session: requests.Session, url: str, **params):
-    for attempt in range(4):
-        r = session.get(url if url.startswith("http") else API + url, params=params or None, timeout=20)
+    for attempt in range(6):
+        time.sleep(PACE)  # go gently: Spotify pauses apps that send too many requests in a row
+        try:
+            r = session.get(url if url.startswith("http") else API + url, params=params or None, timeout=20)
+        except (requests.ConnectionError, requests.Timeout):  # network hiccup: wait and retry
+            time.sleep(3 * (attempt + 1))
+            continue
         if r.status_code == 429:  # rate limited: Spotify says how long to wait
-            time.sleep(int(r.headers.get("Retry-After", 2)) + 1)
+            wait = int(r.headers.get("Retry-After", 2)) + 1
+            if wait > 300:  # a long pause: stop cleanly (progress is saved) instead of hanging for hours
+                raise RateLimited(wait)
+            if wait > 10:
+                print(f"  Spotify asked me to slow down — waiting {wait // 60} min {wait % 60} s...", flush=True)
+            time.sleep(wait)
+            continue
+        if r.status_code >= 500:  # Spotify hiccup (502/503...): wait and retry
+            time.sleep(5 * (attempt + 1))
             continue
         if r.status_code == 403:
             sys.exit(f"Spotify refused {url} (403). Is your account added as a user of the app in the Developer Dashboard?")
         r.raise_for_status()
         return r.json()
-    r.raise_for_status()
+    sys.exit(f"Spotify didn't answer for {url} after 6 tries — check your internet and run again (progress is saved).")
 
 
-def paged(session, url, **params):
-    """Follow Spotify's `next` links and yield every item."""
+def paged(session, url, label=None, **params):
+    """Follow Spotify's `next` links and yield every item (printing progress if `label` is given)."""
     page = api(session, url, **params)
+    done = 0
     while page:
-        yield from page.get("items", [])
+        items = page.get("items", [])
+        yield from items
+        done += len(items)
+        if label and page.get("next") and done % 500 < len(items):
+            print(f"  {label}: {done} of {page.get('total', '?')}...", flush=True)
         page = api(session, page["next"]) if page.get("next") else None
 
 
@@ -167,14 +209,17 @@ def main():
 
     # Playlists (the playlist object's track count is under `items` since Feb 2026; older name was `tracks`)
     playlists = []
+    seen = set()  # the API sometimes returns the same playlist twice across pages
     for p in paged(s, "/me/playlists", limit=50):
-        if not p:
+        if not p or p["id"] in seen:
             continue
+        seen.add(p["id"])
         count = (p.get("items") or p.get("tracks") or {}).get("total")
         playlists.append({
             "id": p["id"], "name": p.get("name", ""), "url": (p.get("external_urls") or {}).get("spotify"),
             "image": image(p), "tracks": count, "public": p.get("public"),
             "mine": (p.get("owner") or {}).get("id") == my_id,
+            "collaborative": bool(p.get("collaborative")), "snapshot_id": p.get("snapshot_id"),
         })
 
     monthly = []
@@ -201,10 +246,80 @@ def main():
     recent = [{**track_info(i["track"]), "played_at": i.get("played_at")}
               for i in api(s, "/me/player/recently-played", limit=50).get("items", []) if i.get("track")]
 
+    # Liked songs + followed artists + songs in my playlists: saved privately in data/raw/cache (progress is
+    # saved as it goes, so a stopped run doesn't start from zero); library_check.py compares them with my history.
+    cached = json.loads(SAVED_FILE.read_text(encoding="utf-8")) if SAVED_FILE.exists() else {}
+
+    def save(**parts):
+        cached.update(parts)
+        SAVED_FILE.parent.mkdir(parents=True, exist_ok=True)
+        SAVED_FILE.write_text(json.dumps(cached, ensure_ascii=False), encoding="utf-8")
+
+    first = api(s, "/me/tracks", limit=1)
+    newest = (first.get("items") or [{}])[0].get("track", {}) or {}
+    old_saved = cached.get("saved_tracks") or []
+    if old_saved and abs(len(old_saved) - (first.get("total") or 0)) <= 20 and old_saved[0].get("id") == newest.get("id"):
+        print(f"Liked songs unchanged since last run ({len(old_saved)}), reusing them.")
+        saved = old_saved
+    else:
+        # resumable: keep a partial list (saved every 500 songs) and continue from where the last run stopped
+        partial = cached.get("liked_partial") or {}
+        if partial.get("newest") != newest.get("id"):
+            partial = {"newest": newest.get("id"), "items": []}
+        saved = partial["items"]
+        offset = partial.get("offset", 0)
+        print(f"Reading my liked songs{f' (continuing from {offset})' if offset else ''}...", flush=True)
+        page = api(s, "/me/tracks", limit=50, offset=offset)
+        while page:
+            saved += [{"added_at": i.get("added_at"), **track_info(i["track"])} for i in page.get("items", []) if i.get("track")]
+            offset += len(page.get("items", []))
+            partial["offset"] = offset
+            if offset % 500 < 50:
+                print(f"  liked songs: {offset} of {page.get('total', '?')}...", flush=True)
+                save(liked_partial=partial)
+            page = api(s, page["next"]) if page.get("next") else None
+        cached.pop("liked_partial", None)
+        save(saved_tracks=saved)
+    followed = []
+    try:
+        page = api(s, "/me/following", type="artist", limit=50).get("artists", {})
+        while page:
+            followed += [{"id": a["id"], "name": a["name"], "image": image(a), "url": (a.get("external_urls") or {}).get("spotify")}
+                         for a in page.get("items", [])]
+            page = api(s, page["next"]).get("artists", {}) if page.get("next") else None
+    except requests.HTTPError as e:
+        print(f"  (couldn't fetch followed artists: {e})")
+    # Songs inside my own (and collaborative) playlists. Spotify only returns the contents of playlists I own or
+    # collaborate on, so playlists I just follow are skipped. Unchanged playlists (same snapshot_id) are reused.
+    save(followed_artists=followed)
+    old = cached.get("playlist_tracks", {})
+    playlist_tracks = dict(old)  # keep what we have, update as we go
+    readable = [p for p in playlists if p["mine"] or p["collaborative"]]
+    print(f"Reading the songs in {len(readable)} of my playlists...")
+    for n, p in enumerate(readable, 1):
+        if n % 20 == 0:
+            print(f"  playlists: {n} of {len(readable)}...", flush=True)
+            save(playlist_tracks=playlist_tracks)
+        if p["id"] in old and old[p["id"]].get("snapshot_id") == p["snapshot_id"]:
+            playlist_tracks[p["id"]] = old[p["id"]]
+            continue
+        items = []
+        try:
+            for i in paged(s, f"/playlists/{p['id']}/items", limit=50):
+                t = i.get("item") or i.get("track")  # `item` since Feb 2026, `track` before
+                if t and t.get("type", "track") == "track" and t.get("id"):  # skip podcasts and local files
+                    items.append({"added_at": i.get("added_at"), **track_info(t)})
+        except requests.HTTPError as e:
+            print(f"  (skipped {p['name']}: {e})")
+            continue
+        playlist_tracks[p["id"]] = {"name": p["name"], "snapshot_id": p["snapshot_id"], "url": p["url"], "image": p["image"], "tracks": items}
+    readable_ids = {p["id"] for p in readable}
+    save(playlist_tracks={k: v for k, v in playlist_tracks.items() if k in readable_ids})  # drop deleted playlists
+
     out = {
         "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "monthly_playlists": monthly,
-        "playlists": [p for p in playlists if p["mine"]],
+        "playlists": [{k: v for k, v in p.items() if k != "snapshot_id"} for p in playlists if p["mine"]],
         "top": top,
         "recent": recent,
     }
@@ -214,9 +329,15 @@ def main():
     with_genres = sum(1 for a in top["artists"]["long_term"] if a["genres"])
     print(f"Done: {len(playlists)} playlists ({len(monthly)} monthly, e.g. "
           f"{', '.join(p['name'] for p in monthly[:3]) or 'none found'}), "
-          f"{len(top['artists']['short_term'])} top artists, {len(recent)} recent plays. "
+          f"{len(top['artists']['short_term'])} top artists, {len(recent)} recent plays, "
+          f"{len(saved)} liked songs, {len(followed)} followed artists. "
           f"Artists with genres from Spotify: {with_genres}/{len(top['artists']['long_term'])}.")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except RateLimited as e:
+        resume = datetime.now() + timedelta(seconds=e.args[0])
+        sys.exit(f"\nSpotify paused this app for about {e.args[0] // 60} min (too many requests). "
+                 f"Progress so far is saved — run this again after {resume:%H:%M} and it continues.")

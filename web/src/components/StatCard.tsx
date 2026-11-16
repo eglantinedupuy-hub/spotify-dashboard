@@ -12,10 +12,12 @@ type StatCardProps = {
   change?: number | null;
   changeLabel?: string;
   href?: string;
+  /** small line under the number, e.g. "≈ 42 days non-stop" */
+  note?: string;
 };
 
 /** A big animated number with a label and an optional up/down comparison. */
-export function StatCard({ label, value, unit, change, changeLabel, href }: StatCardProps) {
+export function StatCard({ label, value, unit, change, changeLabel, href, note }: StatCardProps) {
   const animated = useCountUp(value);
   return (
     <Card href={href}>
@@ -30,6 +32,7 @@ export function StatCard({ label, value, unit, change, changeLabel, href }: Stat
           {changeLabel && <span className="text-muted"> {changeLabel}</span>}
         </p>
       )}
+      {note && <p className="mt-1 text-sm text-muted">{note}</p>}
     </Card>
   );
 }
